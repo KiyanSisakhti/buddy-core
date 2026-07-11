@@ -1,14 +1,11 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+// #![no_std]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod buddy_base;
+mod buddy_md_adapter_interface;
+mod buddy_md_interface;
+mod buddy_order;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use buddy_md_adapter_interface::IBuddyMdAdapter;
+pub use buddy_md_interface::IBuddyMetaData;
+
+pub use buddy_base::BuddyBase;
