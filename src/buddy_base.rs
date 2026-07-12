@@ -1,4 +1,8 @@
-use crate::{IBuddyMdAdapter, IBuddyMetaData, buddy_order::BuddyOrder};
+use crate::{
+    IBuddyMdAdapter, IBuddyMetaData,
+    buddy_order::BuddyOrder,
+    utils::{buddy_lookup, is_aligned_at_order},
+};
 
 pub struct BuddyBase<BMD, const MAX_ORDER: usize = 2>
 where
@@ -17,23 +21,75 @@ where
         }
     }
 
-    pub fn put(&mut self, n: u64) -> bool {
+    pub fn allocate_ceil_reductor(max_order: u8) -> u8 {
+        (MAX_ORDER as u8 - 1) - max_order
+    }
+
+    pub fn push(&mut self, n: u64) -> bool {
         let Some(md) = BMD::ref_md(n) else {
             return false;
         };
+        let ord = md.get_order();
+        let ceil_reduct = md.get_ceil_reduction();
 
-        let ord = md.get_order() as usize;
+        if !is_aligned_at_order(n, ord) {
+            return false;
+        }
 
-        let r = &mut self.orders[ord];
+        self.insert_fix(n, ord, ceil_reduct)
+    }
+    fn insert_fix(&mut self, n: u64, order: u8, ceil_reductor: u8) -> bool {
+        let bd_ord = &mut self.orders[order as usize];
+        let ceiled_max_ord = (MAX_ORDER as u8) - ceil_reductor;
+        if (order + 1) >= ceiled_max_ord {
+            return bd_ord.push(n);
+        };
 
-        r.push(n);
+        let buddy_n = buddy_lookup(n, order);
 
-        true
+        if !bd_ord.try_remove_at_order(buddy_n) {
+            return bd_ord.push(n);
+        }
+
+        let min = n.min(buddy_n);
+        self.insert_fix(min, order + 1, ceil_reductor)
     }
 
-    pub fn dump(&mut self, order: usize) {
-        let r = &mut self.orders[order];
+    pub fn pop(&mut self, order: u8) -> Option<u64> {
+        let bd_ord = &mut self.orders[order as usize];
 
-        r.dump();
+        let num = match bd_ord.pop() {
+            Some(n) => n,
+            None => self.buddy_emission(order)?,
+        };
+
+        if let Some(md) = BMD::mut_md(num) {
+            md.set_order(order);
+        }
+        Some(num)
+    }
+
+    fn buddy_emission(&mut self, targ: u8) -> Option<u64> {
+        let nxt_trg = targ + 1;
+        if nxt_trg >= MAX_ORDER as u8 {
+            return None;
+        }
+
+        let n = self.orders[nxt_trg as usize]
+            .pop()
+            .or_else(|| self.buddy_emission(nxt_trg))?;
+
+        let bd = buddy_lookup(n, targ);
+
+        self.orders[targ as usize].push(bd);
+
+        Some(n)
+    }
+
+    pub fn dump(&self) {
+        for t in &self.orders {
+            println!("\nl {}:", t.order);
+            t.dump();
+        }
     }
 }
