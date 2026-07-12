@@ -1,16 +1,18 @@
 pub trait IBuddyMetaData {
-    fn get_next(&self) -> Option<u64>;
-    fn set_next(&mut self, n: Option<u64>);
+    type MetaData;
 
-    fn get_last(&self) -> Option<u64>;
-    fn set_last(&mut self, n: Option<u64>);
+    fn get_next(md: &Self::MetaData) -> Option<u64>;
+    fn set_next(md: &mut Self::MetaData, n: Option<u64>);
 
-    fn set_order(&mut self, order: u8);
-    fn get_order(&self) -> u8;
+    fn get_last(md: &Self::MetaData) -> Option<u64>;
+    fn set_last(md: &mut Self::MetaData, n: Option<u64>);
 
-    fn get_ceil_reduction(&self) -> u8;
-    fn set_ceil_reduction(&mut self, ceil_reduct: u8);
+    fn set_order(md: &mut Self::MetaData, order: u8);
+    fn get_order(md: &Self::MetaData) -> u8;
 
-    fn is_linked(&self) -> bool;
-    fn set_link(&mut self, state: bool);
+    fn get_ceil_reduction(md: &Self::MetaData) -> u8;
+    fn set_ceil_reduction(md: &mut Self::MetaData, ceil_reduct: u8);
+
+    fn is_linked(md: &Self::MetaData) -> bool;
+    fn set_link(md: &mut Self::MetaData, state: bool);
 }

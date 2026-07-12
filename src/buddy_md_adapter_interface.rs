@@ -1,8 +1,8 @@
 use crate::IBuddyMetaData;
 
 pub trait IBuddyMdAdapter {
-    type MetaData: IBuddyMetaData;
+    type Interface: IBuddyMetaData<MetaData = Self::OUT>;
+    type OUT;
 
-    fn ref_md<'a>(n: u64) -> Option<&'a Self::MetaData>;
-    fn mut_md<'a>(n: u64) -> Option<&'a mut Self::MetaData>;
+    fn get_md(n: u64) -> Option<Self::OUT>;
 }

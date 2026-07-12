@@ -1,4 +1,4 @@
-use buddy_allocation_adapter::{BuddyBase, IBuddyMdAdapter, IBuddyMetaData, utils::buddy_lookup};
+use buddy_allocation_adapter::{BuddyBase, IBuddyMdAdapter, IBuddyMetaData};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TestMd {
@@ -23,44 +23,46 @@ impl TestMd {
 }
 
 impl IBuddyMetaData for TestMd {
-    fn get_next(&self) -> Option<u64> {
-        self.next
+    type MetaData = &'static mut TestMd;
+
+    fn get_next(md: &Self::MetaData) -> Option<u64> {
+        md.next
     }
 
-    fn set_next(&mut self, n: Option<u64>) {
-        self.next = n;
+    fn set_next(md: &mut Self::MetaData, n: Option<u64>) {
+        md.next = n;
     }
 
-    fn get_last(&self) -> Option<u64> {
-        self.last
+    fn get_last(md: &Self::MetaData) -> Option<u64> {
+        md.last
     }
 
-    fn set_last(&mut self, n: Option<u64>) {
-        self.last = n;
+    fn set_last(md: &mut Self::MetaData, n: Option<u64>) {
+        md.last = n;
     }
 
-    fn set_order(&mut self, order: u8) {
-        self.order = order;
+    fn set_order(md: &mut Self::MetaData, order: u8) {
+        md.order = order;
     }
 
-    fn get_order(&self) -> u8 {
-        self.order
+    fn get_order(md: &Self::MetaData) -> u8 {
+        md.order
     }
 
-    fn is_linked(&self) -> bool {
-        self.is_linked
+    fn get_ceil_reduction(md: &Self::MetaData) -> u8 {
+        md.ceil_reduct
     }
 
-    fn set_link(&mut self, state: bool) {
-        self.is_linked = state;
+    fn set_ceil_reduction(md: &mut Self::MetaData, ceil_reduct: u8) {
+        md.ceil_reduct = ceil_reduct;
     }
 
-    fn get_ceil_reduction(&self) -> u8 {
-        self.ceil_reduct
+    fn is_linked(md: &Self::MetaData) -> bool {
+        md.is_linked
     }
 
-    fn set_ceil_reduction(&mut self, ceil_reduct: u8) {
-        self.ceil_reduct = ceil_reduct;
+    fn set_link(md: &mut Self::MetaData, state: bool) {
+        md.is_linked = state;
     }
 }
 
@@ -77,17 +79,19 @@ impl TestDataBox {
 }
 
 static mut MDS: [TestMd; 32] = [TestMd::new(); 32];
+// static mut MDS: [TestMd; 32] =
 
 impl IBuddyMdAdapter for TestDataBox {
-    type MetaData = TestMd;
+    type Interface = TestMd;
 
-    fn ref_md<'a>(n: u64) -> Option<&'a Self::MetaData> {
-        unsafe { Some(&MDS[n as usize]) }
-    }
+    type OUT = &'static mut TestMd;
 
-    fn mut_md<'a>(n: u64) -> Option<&'a mut Self::MetaData> {
+    fn get_md(n: u64) -> Option<Self::OUT> {
         unsafe { Some(&mut MDS[n as usize]) }
     }
+    // fn mut_md<'a>(n: u64) -> Option<&'a mut Self::MetaData> {
+    //     unsafe { Some(&mut MDS[n as usize]) }
+    // }
 }
 
 #[test]

@@ -1,18 +1,18 @@
 use crate::{IBuddyMdAdapter, IBuddyMetaData};
 use core::marker::PhantomData;
 
-pub struct BuddyOrder<T>
+pub struct BuddyOrder<Addapter>
 where
-    T: IBuddyMdAdapter,
+    Addapter: IBuddyMdAdapter,
 {
     root: Option<u64>,
     pub order: u8,
-    adapter: PhantomData<T>,
+    adapter: PhantomData<Addapter>,
 }
 
-impl<T> BuddyOrder<T>
+impl<Adapter> BuddyOrder<Adapter>
 where
-    T: IBuddyMdAdapter,
+    Adapter: IBuddyMdAdapter,
 {
     pub fn new(order: u8) -> Self {
         Self {
@@ -23,30 +23,31 @@ where
     }
 
     pub fn push(&mut self, n: u64) -> bool {
-        let md_res = T::mut_md(n);
+        let md_res = Adapter::get_md(n);
 
         match md_res {
-            Some(md) => {
-                if md.is_linked() {
+            Some(mut md) => {
+                if Adapter::Interface::is_linked(&md) {
                     return false;
                 }
-                //
-                md.set_link(true);
-                md.set_order(self.order);
+
+                Adapter::Interface::set_link(&mut md, true);
+                Adapter::Interface::set_order(&mut md, self.order);
 
                 if let Some(root) = self.root {
-                    let root_md = T::mut_md(root).expect("system data corupted");
-                    root_md.set_last(Some(n));
+                    let mut root_md = Adapter::get_md(root).expect("system data corupted");
 
-                    md.set_last(None);
-                    md.set_next(Some(root));
+                    Adapter::Interface::set_last(&mut root_md, Some(n));
+
+                    Adapter::Interface::set_last(&mut md, None);
+                    Adapter::Interface::set_next(&mut md, Some(root));
 
                     self.root = Some(n);
 
                     true
                 } else {
-                    md.set_last(None);
-                    md.set_next(None);
+                    Adapter::Interface::set_last(&mut md, None);
+                    Adapter::Interface::set_next(&mut md, None);
                     self.root = Some(n);
 
                     true
@@ -71,53 +72,55 @@ where
     pub fn pop(&mut self) -> Option<u64> {
         let root = self.root?;
 
-        let md = T::mut_md(root).expect("system data corupted");
+        let mut md = Adapter::get_md(root).expect("system data corupted");
 
-        let Some(next) = md.get_next() else {
+        let Some(next) = Adapter::Interface::get_next(&md) else {
             self.root = None;
 
-            md.set_next(None);
-            md.set_last(None);
-            md.set_link(false);
+            Adapter::Interface::set_next(&mut md, None);
+            Adapter::Interface::set_last(&mut md, None);
+            Adapter::Interface::set_link(&mut md, false);
 
             return Some(root);
         };
 
-        let next_md = T::mut_md(next).expect("system data corupted");
+        let mut next_md = Adapter::get_md(next).expect("system data corupted");
 
-        next_md.set_last(None);
+        Adapter::Interface::set_last(&mut next_md, None);
 
-        md.set_last(None);
-        md.set_next(None);
-        md.set_link(false);
+        Adapter::Interface::set_last(&mut md, None);
+        Adapter::Interface::set_next(&mut md, None);
+        Adapter::Interface::set_link(&mut md, false);
 
         self.root = Some(next);
         Some(root)
     }
 
     fn try_unlink_at_order(n: u64, order: u8) -> bool {
-        let Some(md) = T::mut_md(n) else {
+        let Some(mut md) = Adapter::get_md(n) else {
             return false;
         };
-        if !md.is_linked() || md.get_order() != order {
+        if !Adapter::Interface::is_linked(&md) || Adapter::Interface::get_order(&md) != order {
             return false;
         }
 
-        let last = md.get_last();
-        let next = md.get_next();
+        let last = Adapter::Interface::get_last(&md);
+        let next = Adapter::Interface::get_next(&md);
 
         if let Some(lst) = last {
-            let lst_md = T::mut_md(lst).expect("system data corupted");
-            lst_md.set_next(next);
+            let mut lst_md = Adapter::get_md(lst).expect("system data corupted");
+
+            Adapter::Interface::set_next(&mut lst_md, next);
         }
         if let Some(nxt) = next {
-            let nxt_md = T::mut_md(nxt).expect("system data corupted");
-            nxt_md.set_last(last);
+            let mut nxt_md = Adapter::get_md(nxt).expect("system data corupted");
+
+            Adapter::Interface::set_last(&mut nxt_md, last);
         }
 
-        md.set_next(None);
-        md.set_last(None);
-        md.set_link(false);
+        Adapter::Interface::set_next(&mut md, None);
+        Adapter::Interface::set_last(&mut md, None);
+        Adapter::Interface::set_link(&mut md, false);
 
         return true;
     }
@@ -127,7 +130,8 @@ where
         while let Some(rt) = root {
             print!("-{}-", rt);
 
-            root = T::mut_md(rt).unwrap().get_next();
+            let fg = Adapter::get_md(rt).unwrap();
+            root = Adapter::Interface::get_next(&fg);
         }
     }
 }

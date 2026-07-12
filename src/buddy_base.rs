@@ -4,16 +4,16 @@ use crate::{
     utils::{buddy_lookup, is_aligned_at_order},
 };
 
-pub struct BuddyBase<BMD, const MAX_ORDER: usize = 2>
+pub struct BuddyBase<Adapter, const MAX_ORDER: usize = 2>
 where
-    BMD: IBuddyMdAdapter,
+    Adapter: IBuddyMdAdapter,
 {
-    orders: [BuddyOrder<BMD>; MAX_ORDER],
+    orders: [BuddyOrder<Adapter>; MAX_ORDER],
 }
 
-impl<BMD, const MAX_ORDER: usize> BuddyBase<BMD, MAX_ORDER>
+impl<Adapter, const MAX_ORDER: usize> BuddyBase<Adapter, MAX_ORDER>
 where
-    BMD: IBuddyMdAdapter,
+    Adapter: IBuddyMdAdapter,
 {
     pub fn new() -> Self {
         Self {
@@ -26,11 +26,12 @@ where
     }
 
     pub fn push(&mut self, n: u64) -> bool {
-        let Some(md) = BMD::ref_md(n) else {
+        let Some(md) = Adapter::get_md(n) else {
             return false;
         };
-        let ord = md.get_order();
-        let ceil_reduct = md.get_ceil_reduction();
+
+        let ord = Adapter::Interface::get_order(&md);
+        let ceil_reduct = Adapter::Interface::get_ceil_reduction(&md);
 
         if !is_aligned_at_order(n, ord) {
             return false;
@@ -63,8 +64,8 @@ where
             None => self.buddy_emission(order)?,
         };
 
-        if let Some(md) = BMD::mut_md(num) {
-            md.set_order(order);
+        if let Some(mut md) = Adapter::get_md(num) {
+            Adapter::Interface::set_order(&mut md, order);
         }
         Some(num)
     }
