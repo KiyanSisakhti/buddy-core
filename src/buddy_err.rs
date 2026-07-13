@@ -1,8 +1,23 @@
+/// Errors that can occur during buddy allocator operations.
+///
+/// These errors help ensure memory safety, catch double-free bugs,
+/// and detect structural corruptions inside the allocator state.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuddyError {
+    /// Discovered an attempt to free a block that is already marked as free or linked.
     DoubleFree,
+
+    /// The metadata for the requested block index is either missing,
+    /// altered out of bounds, or structurally corrupted.
     DataCorrupted,
+
+    /// No free blocks are available at the requested target order,
+    /// and higher orders cannot be split further.
     NotFound,
+
+    /// The provided block address is not aligned properly with respect
+    /// to its allocation or buddy order.
     AlignmentMismatch,
 }
 

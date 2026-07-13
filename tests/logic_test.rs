@@ -1,4 +1,5 @@
-use buddy_core::{BuddyBase, IBuddyMdAdapter, IBuddyMetaData};
+use bolero::AnySliceMutExt;
+use buddy_core::{BuddyBase, BuddyError, IBuddyMdAdapter, IBuddyMetaData};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TestMetaData {
@@ -68,7 +69,7 @@ impl IBuddyMetaData for TestMetaData {
 
 pub struct TestMetaDataHandler {}
 
-static mut MDS: [TestMetaData; 4096 * 2] = [TestMetaData::new(); 4096 * 2];
+static mut MDS: [TestMetaData; 4096 * 4] = [TestMetaData::new(); 4096 * 4];
 
 impl IBuddyMdAdapter for TestMetaDataHandler {
     type Interface = TestMetaData;
@@ -77,7 +78,7 @@ impl IBuddyMdAdapter for TestMetaDataHandler {
 
     fn get_md(n: u64) -> Option<Self::MetaDataHandle> {
         unsafe {
-            if n >= (4096 * 2) {
+            if n >= (4096 * 4) {
                 None
             } else {
                 Some(&mut MDS[n as usize])
@@ -86,114 +87,83 @@ impl IBuddyMdAdapter for TestMetaDataHandler {
     }
 }
 
+fn setup_initial_allocator() -> BuddyBase<TestMetaDataHandler, 13> {
+    let mut alloc = BuddyBase::new();
+    alloc.push_with_order(0, 12, 0).expect("push fail");
+    alloc.push_with_order(4096, 11, 1).expect("push fail");
+    alloc.push_with_order(6144, 11, 1).expect("push fail");
+    alloc.push_with_order(8192, 12, 0).expect("push fail");
+    alloc.push_with_order(12288, 10, 2).expect("push fail");
+    alloc.push_with_order(13312, 10, 2).expect("push fail");
+    alloc.push_with_order(14336, 10, 2).expect("push fail");
+    alloc.push_with_order(15360, 9, 3).expect("push fail");
+    alloc.push_with_order(15872, 9, 3).expect("push fail");
+    alloc
+}
 #[test]
 pub fn logic_test() {
     //
-    let mut alloc: BuddyBase<TestMetaDataHandler, 13> = BuddyBase::new();
+    let mut alloc: BuddyBase<TestMetaDataHandler, 13> = setup_initial_allocator();
 
-    alloc.dump();
-    println!("\n\n");
+    let mut allocated_list = Vec::<u64>::new();
 
-    alloc.push_with_order(2048, 11, 1).unwrap();
-    alloc.push_with_order(0, 11, 0).unwrap();
+    while let Ok(f) = alloc.pop(0) {
+        allocated_list.push(f);
+    }
 
-    // alloc.push(0).unwrap();
-    // alloc.push(1).unwrap();
-    // alloc.push(2).unwrap();
-    // alloc.push(3).unwrap();
-    // alloc.push(4).unwrap();
-    // alloc.push(5).unwrap();
-    // alloc.push(6).unwrap();
-    // alloc.push(7).unwrap();
-    // alloc.push(8).unwrap();
-    // alloc.push(9).unwrap();
-    // alloc.push(10).unwrap();
-    // alloc.push(11).unwrap();
-    // alloc.push(12).unwrap();
-    // alloc.push(13).unwrap();
-    // alloc.push(14).unwrap();
-    // alloc.push(15).unwrap();
-    // alloc.push(16).unwrap();
-    // alloc.push(17).unwrap();
-    // alloc.push(18).unwrap();
-    // alloc.push(19).unwrap();
-    // alloc.push(20).unwrap();
-    // alloc.push(21).unwrap();
-    // alloc.push(22).unwrap();
-    // alloc.push(23).unwrap();
-    // alloc.push(24).unwrap();
-    // alloc.push(25).unwrap();
-    // alloc.push(26).unwrap();
-    // alloc.push(27).unwrap();
-    // alloc.push(28).unwrap();
-    // alloc.push(29).unwrap();
-    // alloc.push(30).unwrap();
-    // alloc.push(31).unwrap();
+    allocated_list.shuffle();
 
-    // alloc.dump();
-    // println!("\n\n");
-    // let rfv = alloc.pop(0).unwrap();
-    // let rfv2 = alloc.pop(0).unwrap();
-    // let f = alloc.pop(2).unwrap();
-    // let f1 = alloc.pop(2).unwrap();
-    // let f2 = alloc.pop(0).unwrap();
-    // let f3 = alloc.pop(0).unwrap();
-    // let f4 = alloc.pop(1).unwrap();
-    // let f5 = alloc.pop(1).unwrap();
-    // let f6 = alloc.pop(3).unwrap();
-    // let f7 = alloc.pop(1).unwrap();
-    // let f8 = alloc.pop(0).unwrap();
-    // let f9 = alloc.pop(1).unwrap();
-    // let f10 = alloc.pop(0).unwrap();
+    for i in allocated_list.drain(..) {
+        alloc.push(i).expect("push faild");
+    }
 
-    // alloc.dump();
+    let generator = bolero::produce::<Vec<(u8, u8)>>().with().len(10..100);
+    let mut alloc_count = 0u64;
+    let mut dealloc_count = 0u64;
+    bolero::check!()
+        .with_generator(generator)
+        .for_each(|generator| {
+            //
+            //
+            let mut allocated_list = Vec::<u64>::new();
 
-    // println!("\n\n\n\n");
+            for &(op, raw_order) in generator {
+                if op % 2 == 0 {
+                    let safe_order = raw_order % 13;
+                    if let Ok(addr) = alloc.pop(safe_order) {
+                        allocated_list.push(addr);
+                        alloc_count += 1;
+                    }
+                } else {
+                    if let Some(addr) = allocated_list.pop() {
+                        let _ = alloc.push(addr).expect("buddy internal faild");
+                        dealloc_count += 1;
+                    }
+                }
+            }
 
-    // alloc.push(rfv).unwrap();
-    // alloc.push(rfv2).unwrap();
-    // alloc.push(f).unwrap();
-    // alloc.push(f1).unwrap();
-    // alloc.push(f2).unwrap();
-    // alloc.push(f3).unwrap();
-    // alloc.push(f4).unwrap();
-    // alloc.push(f5).unwrap();
-    // alloc.push(f6).unwrap();
-    // alloc.push(f7).unwrap();
-    // alloc.push(f8).unwrap();
-    // alloc.push(f9).unwrap();
-    // alloc.push(f10).unwrap();
+            for addr in allocated_list.drain(..) {
+                alloc.push(addr).expect("buddy internal faild");
+                dealloc_count += 1;
+            }
+        });
 
-    // alloc.push(f3).expect_err("msg");
-    // alloc.push(f4).expect_err("msg");
-    // alloc.push(f1).expect_err("msg");
-    // alloc.push(f5).expect_err("msg");
-    // alloc.push(f6).expect_err("msg");
-    // alloc.push(f7).expect_err("msg");
-    // alloc.push(f2).expect_err("msg");
-    // alloc.push(f).expect_err("msg");
-    // alloc.push(rfv).expect_err("msg");
-    // alloc.push(rfv2).expect_err("msg");
-    // alloc.push(f8).expect_err("msg");
-    // alloc.push(f10).expect_err("msg");
-    // alloc.push(f9).expect_err("msg");
+    assert_eq!(alloc_count, dealloc_count);
 
-    // alloc.dump();
+    alloc.pop(12).expect("data corrupted");
+    alloc.pop(12).expect("data corrupted");
+    assert_eq!(alloc.pop(12).unwrap_err(), BuddyError::NotFound);
 
-    // println!("\n\n");
+    alloc.pop(11).expect("data corrupted");
+    alloc.pop(11).expect("data corrupted");
+    assert_eq!(alloc.pop(11).unwrap_err(), BuddyError::NotFound);
 
-    // println!("-{}-", buddy_lookup(5, 0));
-    // println!("-{}-", buddy_lookup(5, 0));
-    // println!("-{}-", buddy_lookup(5, 0));
-    // println!("-{}-", BuddyBase::<TestDataBox>::rm_(1, 0));
-    // println!("{}", is_aligned_at_order(2, 2))
-    // bb.dump(1);
+    alloc.pop(10).expect("data corrupted");
+    alloc.pop(10).expect("data corrupted");
+    alloc.pop(10).expect("data corrupted");
+    assert_eq!(alloc.pop(10).unwrap_err(), BuddyError::NotFound);
 
-    // println!("----- lo c ------{f:?}");
-    // println!("{:#?}", unsafe { MDS });
-
-    // println!("----- lo c ------");
-    // println!("----- lo c ------");
-    // println!("----- lo c ------");
-    // println!("----- lo c ------");
+    alloc.pop(9).expect("data corrupted");
+    alloc.pop(9).expect("data corrupted");
+    assert_eq!(alloc.pop(9).unwrap_err(), BuddyError::NotFound);
 }

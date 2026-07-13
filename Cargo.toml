@@ -3,13 +3,19 @@ name = "buddy-core"
 version = "0.1.0"
 edition = "2024"
 
+description = "A generic, <code>#![no_std]</code>, allocation-free Binary Buddy Allocator engine for kernels and embedded systems."
+license = "MIT"
+documentation = "https://docs.rs/buddy-core"
+homepage = "https://github.com/KiyanSisakhti/buddy-core.git"
+repository = "https://github.com/KiyanSisakhti/buddy-core.git"
+
 [dependencies]
 
 [dev-dependencies]
 bolero = "0.13.4"
 
 
-# [dev-dependencies.cargo-husky]
-# version = "1"
-# default-features = false # Disable features which are enabled by default
-# features = ["precommit-hook", "prepush-hook", "run-cargo-test", "run-cargo-clippy", "run-cargo-fmt"]
+[dev-dependencies.cargo-husky]
+version = "1"
+default-features = false # Disable features which are enabled by default
+features = ["precommit-hook", "prepush-hook", "run-cargo-test", "run-cargo-clippy", "run-cargo-fmt"]
