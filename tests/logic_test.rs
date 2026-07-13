@@ -1,7 +1,7 @@
-use buddy_allocation_adapter::{BuddyBase, IBuddyMdAdapter, IBuddyMetaData};
+use buddy_core::{BuddyBase, IBuddyMdAdapter, IBuddyMetaData};
 
 #[derive(Debug, Clone, Copy)]
-pub struct TestMd {
+pub struct TestMetaData {
     next: Option<u64>,
     last: Option<u64>,
 
@@ -10,20 +10,20 @@ pub struct TestMd {
     order: u8,
     ceil_reduct: u8,
 }
-impl TestMd {
+impl TestMetaData {
     pub const fn new() -> Self {
         Self {
             next: None,
             last: None,
             is_linked: false,
             order: 0,
-            ceil_reduct: 1,
+            ceil_reduct: 0,
         }
     }
 }
 
-impl IBuddyMetaData for TestMd {
-    type MetaData = &'static mut TestMd;
+impl IBuddyMetaData for TestMetaData {
+    type MetaData = &'static mut TestMetaData;
 
     fn get_next(md: &Self::MetaData) -> Option<u64> {
         md.next
@@ -66,83 +66,121 @@ impl IBuddyMetaData for TestMd {
     }
 }
 
-pub struct TestDataBox {
-    // nodes: Vec<TestMd>,
-}
+pub struct TestMetaDataHandler {}
 
-impl TestDataBox {
-    // fn new() -> TestDataBox {
-    //     TestDataBox {
-    //         nodes: vec![TestMd::new(); 512],
-    //     }
-    // }
-}
+static mut MDS: [TestMetaData; 4096 * 2] = [TestMetaData::new(); 4096 * 2];
 
-static mut MDS: [TestMd; 32] = [TestMd::new(); 32];
-// static mut MDS: [TestMd; 32] =
+impl IBuddyMdAdapter for TestMetaDataHandler {
+    type Interface = TestMetaData;
 
-impl IBuddyMdAdapter for TestDataBox {
-    type Interface = TestMd;
+    type MetaDataHandle = &'static mut TestMetaData;
 
-    type OUT = &'static mut TestMd;
-
-    fn get_md(n: u64) -> Option<Self::OUT> {
-        unsafe { Some(&mut MDS[n as usize]) }
+    fn get_md(n: u64) -> Option<Self::MetaDataHandle> {
+        unsafe {
+            if n >= (4096 * 2) {
+                None
+            } else {
+                Some(&mut MDS[n as usize])
+            }
+        }
     }
-    // fn mut_md<'a>(n: u64) -> Option<&'a mut Self::MetaData> {
-    //     unsafe { Some(&mut MDS[n as usize]) }
-    // }
 }
 
 #[test]
 pub fn logic_test() {
-    // let mut rf = TestDataBox::new();
+    //
+    let mut alloc: BuddyBase<TestMetaDataHandler, 13> = BuddyBase::new();
 
-    // let r = &mut rf.nodes[0];
-    // r.last = 90;
-
-    // let f = &mut rf.nodes[0];
-    let mut bb: BuddyBase<TestDataBox, 4> = BuddyBase::new();
-
-    bb.dump();
+    alloc.dump();
     println!("\n\n");
 
-    bb.push(0);
-    bb.push(1);
-    bb.push(2);
-    bb.push(3);
-    bb.push(4);
-    bb.push(5);
-    bb.push(6);
-    bb.push(7);
-    bb.push(8);
-    bb.push(9);
-    bb.push(10);
-    bb.push(11);
-    bb.push(12);
-    bb.push(13);
-    bb.push(14);
-    bb.push(15);
+    alloc.push_with_order(2048, 11, 1).unwrap();
+    alloc.push_with_order(0, 11, 0).unwrap();
 
-    bb.dump();
-    println!("\n\n");
-    let rfv = bb.pop(0).unwrap();
-    let rfv2 = bb.pop(0).unwrap();
-    let f = bb.pop(2).unwrap();
-    let f1 = bb.pop(2).unwrap();
+    // alloc.push(0).unwrap();
+    // alloc.push(1).unwrap();
+    // alloc.push(2).unwrap();
+    // alloc.push(3).unwrap();
+    // alloc.push(4).unwrap();
+    // alloc.push(5).unwrap();
+    // alloc.push(6).unwrap();
+    // alloc.push(7).unwrap();
+    // alloc.push(8).unwrap();
+    // alloc.push(9).unwrap();
+    // alloc.push(10).unwrap();
+    // alloc.push(11).unwrap();
+    // alloc.push(12).unwrap();
+    // alloc.push(13).unwrap();
+    // alloc.push(14).unwrap();
+    // alloc.push(15).unwrap();
+    // alloc.push(16).unwrap();
+    // alloc.push(17).unwrap();
+    // alloc.push(18).unwrap();
+    // alloc.push(19).unwrap();
+    // alloc.push(20).unwrap();
+    // alloc.push(21).unwrap();
+    // alloc.push(22).unwrap();
+    // alloc.push(23).unwrap();
+    // alloc.push(24).unwrap();
+    // alloc.push(25).unwrap();
+    // alloc.push(26).unwrap();
+    // alloc.push(27).unwrap();
+    // alloc.push(28).unwrap();
+    // alloc.push(29).unwrap();
+    // alloc.push(30).unwrap();
+    // alloc.push(31).unwrap();
 
-    bb.dump();
+    // alloc.dump();
+    // println!("\n\n");
+    // let rfv = alloc.pop(0).unwrap();
+    // let rfv2 = alloc.pop(0).unwrap();
+    // let f = alloc.pop(2).unwrap();
+    // let f1 = alloc.pop(2).unwrap();
+    // let f2 = alloc.pop(0).unwrap();
+    // let f3 = alloc.pop(0).unwrap();
+    // let f4 = alloc.pop(1).unwrap();
+    // let f5 = alloc.pop(1).unwrap();
+    // let f6 = alloc.pop(3).unwrap();
+    // let f7 = alloc.pop(1).unwrap();
+    // let f8 = alloc.pop(0).unwrap();
+    // let f9 = alloc.pop(1).unwrap();
+    // let f10 = alloc.pop(0).unwrap();
 
-    println!("\n\n\n\n");
+    // alloc.dump();
 
-    bb.push(rfv);
-    bb.push(rfv2);
-    bb.push(f);
-    bb.push(f1);
+    // println!("\n\n\n\n");
 
-    bb.dump();
+    // alloc.push(rfv).unwrap();
+    // alloc.push(rfv2).unwrap();
+    // alloc.push(f).unwrap();
+    // alloc.push(f1).unwrap();
+    // alloc.push(f2).unwrap();
+    // alloc.push(f3).unwrap();
+    // alloc.push(f4).unwrap();
+    // alloc.push(f5).unwrap();
+    // alloc.push(f6).unwrap();
+    // alloc.push(f7).unwrap();
+    // alloc.push(f8).unwrap();
+    // alloc.push(f9).unwrap();
+    // alloc.push(f10).unwrap();
 
-    println!("\n\n");
+    // alloc.push(f3).expect_err("msg");
+    // alloc.push(f4).expect_err("msg");
+    // alloc.push(f1).expect_err("msg");
+    // alloc.push(f5).expect_err("msg");
+    // alloc.push(f6).expect_err("msg");
+    // alloc.push(f7).expect_err("msg");
+    // alloc.push(f2).expect_err("msg");
+    // alloc.push(f).expect_err("msg");
+    // alloc.push(rfv).expect_err("msg");
+    // alloc.push(rfv2).expect_err("msg");
+    // alloc.push(f8).expect_err("msg");
+    // alloc.push(f10).expect_err("msg");
+    // alloc.push(f9).expect_err("msg");
+
+    // alloc.dump();
+
+    // println!("\n\n");
 
     // println!("-{}-", buddy_lookup(5, 0));
     // println!("-{}-", buddy_lookup(5, 0));
