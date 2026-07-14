@@ -142,3 +142,4 @@ pub use buddy_base::BuddyBase;
 pub use buddy_err::BuddyError;
 pub use buddy_md_adapter_interface::IBuddyMdAdapter;
 pub use buddy_md_interface::IBuddyMetaData;
+pub use utils::allocate_ceil_reductor;

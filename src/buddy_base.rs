@@ -6,7 +6,7 @@
 /// buddies upwards) and **Recursive Splitting** (breaking down larger blocks downwards).
 ///
 /// # Compile-time Safety Constraints
-/// * `MAX_ORDER` - The maximum order depth of the allocator (bounded at compile time up to 31).
+/// * `ORDER_COUNT` - The maximum order depth of the allocator (bounded at compile time up to 31).
 /// * `Adapter` - The interface wrapper that bridges the allocator to the target physical metadata.
 ///
 use crate::{
@@ -16,22 +16,22 @@ use crate::{
     utils::{buddy_lookup, is_aligned_at_order},
 };
 
-pub struct BuddyBase<Adapter, const MAX_ORDER: usize = 2>
+pub struct BuddyBase<Adapter, const ORDER_COUNT: usize = 2>
 where
     Adapter: IBuddyMdAdapter,
 {
     /// Array containing the tracker state for every individual order layer.
-    orders: [BuddyOrder<MAX_ORDER, Adapter>; MAX_ORDER],
+    orders: [BuddyOrder<ORDER_COUNT, Adapter>; ORDER_COUNT],
 }
 
-impl<Adapter, const MAX_ORDER: usize> BuddyBase<Adapter, MAX_ORDER>
+impl<Adapter, const ORDER_COUNT: usize> BuddyBase<Adapter, ORDER_COUNT>
 where
     Adapter: IBuddyMdAdapter,
 {
-    /// Compile-time guard asserting that `MAX_ORDER` does not exceed 31.
+    /// Compile-time guard asserting that `ORDER_COUNT` does not exceed 31.
     /// This prevents arithmetic overflows on 32-bit/64-bit systems during pointer calculation.
     const MAX_CHECK: () = {
-        assert!(MAX_ORDER <= 31);
+        assert!(ORDER_COUNT <= 31);
     };
 
     /// Creates a initialized instance of the buddy allocator controller.
@@ -44,10 +44,14 @@ where
 
     /// Helper utility to convert a target maximum order ceiling into a relative "reduction index".
     ///
-    /// This defines how many layers below `MAX_ORDER` a memory block's merging potential must stop.
+    /// This defines how many layers below `ORDER_COUNT` a memory block's merging potential must stop.
+    #[deprecated(
+        since = "0.1.0",
+        note = "Please use 'buddy_core::allocate_ceil_reductor' instead."
+    )]
     #[inline]
     pub fn allocate_ceil_reductor(max_order: u8) -> u8 {
-        (MAX_ORDER as u8 - 1) - max_order
+        (ORDER_COUNT as u8 - 1) - max_order
     }
 
     /// Safely introduces a raw page/block into the system with an assigned order and merge ceiling.
@@ -68,7 +72,7 @@ where
             return Err(BuddyError::AlignmentMismatch);
         }
 
-        let ceil_max = (MAX_ORDER as u8 - 1) - ceil_reduct;
+        let ceil_max = (ORDER_COUNT as u8 - 1) - ceil_reduct;
         if order > ceil_max {
             return Err(BuddyError::AlignmentMismatch);
         }
@@ -124,7 +128,7 @@ where
     /// Recursion automatically stops once the block hits its custom ceiling limit (`ceiled_max_ord`).
     fn insert_fix(&mut self, n: u64, order: u8, ceil_reductor: u8) -> Result<(), BuddyError> {
         let bd_ord = &mut self.orders[order as usize];
-        let ceiled_max_ord = (MAX_ORDER as u8) - ceil_reductor;
+        let ceiled_max_ord = (ORDER_COUNT as u8) - ceil_reductor;
 
         // Base Case: If the next level exceeds our structural boundary limit, push and terminate
         if (order + 1) >= ceiled_max_ord {
@@ -181,7 +185,7 @@ where
     ///   - The "Right" buddy (index `bd`) is pushed down into the current layer's free list.
     fn buddy_emission(&mut self, targ: u8) -> Result<u64, BuddyError> {
         let nxt_trg = targ + 1;
-        if nxt_trg >= MAX_ORDER as u8 {
+        if nxt_trg >= ORDER_COUNT as u8 {
             return Err(BuddyError::NotFound);
         }
 
@@ -211,7 +215,7 @@ where
     // }
 }
 
-impl<Adapter, const MAX_ORDER: usize> Default for BuddyBase<Adapter, MAX_ORDER>
+impl<Adapter, const ORDER_COUNT: usize> Default for BuddyBase<Adapter, ORDER_COUNT>
 where
     Adapter: IBuddyMdAdapter,
 {

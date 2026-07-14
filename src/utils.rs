@@ -72,6 +72,14 @@ pub fn is_aligned_at_order(n: u64, order: u8) -> bool {
     (n & rm) == 0
 }
 
+/// Helper utility to convert a target maximum order ceiling into a relative "reduction index".
+///
+/// This defines how many layers below `ORDER_COUNT` a memory block's merging potential must stop.
+#[inline]
+pub fn allocate_ceil_reductor<const ORDER_COUNT: u8>(max_order: u8) -> u8 {
+    (ORDER_COUNT - 1) - max_order
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

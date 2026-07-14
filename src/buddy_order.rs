@@ -6,14 +6,14 @@
 /// extractions (`try_unlink_at_order`) when buddies are merging or splitting.
 ///
 /// # Type Parameters
-/// * `MAX_ORDERS` - The compile-time limit of the maximum allowable orders in the entire allocator.
+/// * `ORDER_COUNT` - The compile-time limit of the maximum allowable orders in the entire allocator.
 /// * `Adapter` - The hardware/storage translation abstraction implementing [`IBuddyMdAdapter`].
 ///
 ///
 use crate::{IBuddyMdAdapter, IBuddyMetaData, buddy_err::BuddyError};
 use core::marker::PhantomData;
 
-pub struct BuddyOrder<const MAX_ORDERS: usize, Adapter>
+pub struct BuddyOrder<const ORDER_COUNT: usize, Adapter>
 where
     Adapter: IBuddyMdAdapter,
 {
@@ -27,7 +27,7 @@ where
     adapter: PhantomData<Adapter>,
 }
 
-impl<const MAX_ORDERS: usize, Adapter> BuddyOrder<MAX_ORDERS, Adapter>
+impl<const ORDER_COUNT: usize, Adapter> BuddyOrder<ORDER_COUNT, Adapter>
 where
     Adapter: IBuddyMdAdapter,
 {
@@ -106,7 +106,7 @@ where
         target_order: u8,
     ) -> bool {
         let ceil_reduct = Adapter::Interface::get_ceil_reduction(md);
-        (target_order as usize) + (ceil_reduct as usize) < MAX_ORDERS
+        (target_order as usize) + (ceil_reduct as usize) < ORDER_COUNT
     }
 
     /// Pops the root (head) block off this order layer, promoting it to the next higher order level state.
