@@ -113,7 +113,7 @@ This recursive merge is what keeps external fragmentation low over time.
 │   Implements recursive splitting (buddy_emission) and     │
 │   recursive coalescing (insert_fix).                      │
 └───────────────────────┬───────────────────────────────────┘
-                         │ owns [ BuddyOrder; MAX_ORDER ]
+                         │ owns [ BuddyOrder; ORDER_COUNT ]
                          ▼
 ┌───────────────────────────────────────────────────────────┐
 │                       BuddyOrder                          │
@@ -132,9 +132,9 @@ This recursive merge is what keeps external fragmentation low over time.
 └───────────────────────────────────────────────────────────┘
 ```
 
-### `BuddyBase<Adapter, MAX_ORDER>` — the brain
+### `BuddyBase<Adapter, ORDER_COUNT>` — the brain
 
-- `new()` — builds `MAX_ORDER` independent `BuddyOrder` layers.
+- `new()` — builds `ORDER_COUNT` independent `BuddyOrder` layers.
 - `push_with_order(addr, order, ceil_reduct)` — bootstraps a raw block into the system at a given
   order, with an optional "ceiling" limiting how far it's allowed to merge upward (useful for
   carving reserved zones that shouldn't blend with other memory regions).
@@ -148,7 +148,7 @@ This recursive merge is what keeps external fragmentation low over time.
 - `buddy_emission` (private) — the recursive split engine. Climbs orders upward until a free block
   is found, then splits it back down, pushing the leftover half into the free list at each step.
 
-### `BuddyOrder<MAX_ORDERS, Adapter>` — a single order's free list
+### `BuddyOrder<ORDER_COUNT, Adapter>` — a single order's free list
 
 A hand-rolled doubly linked list over your metadata, addressed by raw `u64` block index instead
 of pointers:
@@ -254,7 +254,7 @@ impl IBuddyMdAdapter for SystemAdapter {
 }
 
 fn main() -> Result<(), BuddyError> {
-    // MAX_ORDER = 8 → orders 0..=7 supported.
+    // ORDER_COUNT = 8 → orders 0..=7 supported.
     let mut allocator = BuddyBase::<SystemAdapter, 8>::new();
 
     // Seed the allocator with two raw blocks at order 0.
@@ -301,10 +301,10 @@ in the block's own metadata, checked on every merge attempt.
 ### How it's computed
 
 ```rust
-let ceiled_max_ord = (MAX_ORDER as u8) - ceil_reductor;
+let ceiled_max_ord = (ORDER_COUNT as u8) - ceil_reductor;
 ```
 
-So `ceil_reduct` isn't the ceiling order itself — it's *how many orders below `MAX_ORDER`*
+So `ceil_reduct` isn't the ceiling order itself — it's *how many orders below `ORDER_COUNT`*
 the ceiling sits. A `ceil_reduct` of `0` means "no restriction, allowed to merge all the way
 to the top order." A larger `ceil_reduct` pulls that ceiling further down.
 
@@ -315,11 +315,11 @@ This check happens in two places:
   pushes the block into its current order's free list instead of climbing further.
 - **`BuddyOrder::can_be_at_order`** — a second, symmetric guard used during `pop`/unlink, making
   sure a block being pulled out for a merge is actually still allowed to exist at the
-  target order: `(target_order + ceil_reduct) < MAX_ORDERS`.
+  target order: `(target_order + ceil_reduct) < ORDER_COUNT`.
 
 ### Worked example
 
-Say `MAX_ORDER = 13` (orders 0..=12 exist, order 12 is the biggest). You have two separate
+Say `ORDER_COUNT = 13` (orders 0..=12 exist, order 12 is the biggest). You have two separate
 memory zones sitting next to each other in address space — a small reserved DMA zone and the
 regular general-purpose zone — and you don't want blocks from one ever coalescing into the
 other:
@@ -466,7 +466,7 @@ cargo test
 
 ```toml
 [dependencies]
-buddy-core = "0.1.0"
+buddy-core = "0.1.1"
 ```
 
 `edition = "2024"`, `#![no_std]`, no `alloc` dependency.

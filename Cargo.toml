@@ -1,13 +1,18 @@
 [package]
 name = "buddy-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
-description = "A generic, <code>#![no_std]</code>, allocation-free Binary Buddy Allocator engine for kernels and embedded systems."
+description = "A generic, [no_std], allocation-free Binary Buddy Allocator engine for kernels and embedded systems."
+
 license = "MIT"
+
 documentation = "https://docs.rs/buddy-core"
 homepage = "https://github.com/KiyanSisakhti/buddy-core.git"
 repository = "https://github.com/KiyanSisakhti/buddy-core.git"
+
+keywords = ["allocator", "buddy-system", "memory", "embedded", "no-std"]
+categories = ["embedded", "memory-management", "no-std"]
 
 [dependencies]
 
