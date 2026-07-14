@@ -1,6 +1,6 @@
 [package]
 name = "buddy-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 description = "A generic, [no_std], allocation-free Binary Buddy Allocator engine for kernels and embedded systems."

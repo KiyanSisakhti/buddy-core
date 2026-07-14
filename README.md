@@ -466,7 +466,7 @@ cargo test
 
 ```toml
 [dependencies]
-buddy-core = "0.1.0"
+buddy-core = "0.1.1"
 ```
 
 `edition = "2024"`, `#![no_std]`, no `alloc` dependency.

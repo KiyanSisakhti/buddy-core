@@ -102,6 +102,9 @@ fn setup_initial_allocator() -> BuddyBase<TestMetaDataHandler, 13> {
 }
 #[test]
 pub fn logic_test() {
+    let ceil = buddy_core::allocate_ceil_reductor::<13>(1);
+    assert_eq!(ceil, 11);
+
     //
     let mut alloc: BuddyBase<TestMetaDataHandler, 13> = setup_initial_allocator();
 
